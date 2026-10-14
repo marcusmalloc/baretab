@@ -37,6 +37,11 @@ final class SwitcherModel: ObservableObject {
 
 struct SwitcherView: View {
     @ObservedObject var model: SwitcherModel
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Light mode uses a solid, menu-style selection: a translucent accent fill washes out when
+    /// the panel sits over dark content, especially with the Graphite accent.
+    private var isLight: Bool { colorScheme == .light }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -54,7 +59,10 @@ struct SwitcherView: View {
         }
         .padding(8)
         .frame(width: 260)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            isLight ? .thickMaterial : .regularMaterial,
+            in: RoundedRectangle(cornerRadius: 12)
+        )
     }
 
     private func row(for entry: WindowEntry, isSelected: Bool) -> some View {
@@ -64,6 +72,7 @@ struct SwitcherView: View {
                 .frame(width: 24, height: 24)
             Text(entry.label)
                 .lineLimit(1)
+                .foregroundStyle(usesSolidSelection(entry, isSelected) ? .white : .primary)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
@@ -88,7 +97,14 @@ struct SwitcherView: View {
         if entry.id == model.pendingQuit {
             return Color.red.opacity(isSelected ? 0.5 : 0.25)
         }
-        return isSelected ? Color.accentColor.opacity(0.35) : .clear
+        guard isSelected else { return .clear }
+        return isLight
+            ? Color(nsColor: .selectedContentBackgroundColor)
+            : Color.accentColor.opacity(0.35)
+    }
+
+    private func usesSolidSelection(_ entry: WindowEntry, _ isSelected: Bool) -> Bool {
+        isLight && isSelected && entry.id != model.pendingQuit
     }
 }
 
